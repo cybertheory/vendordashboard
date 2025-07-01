@@ -1,11 +1,11 @@
 // vendor-dashboard/src/app/dashboard/edit-post/[postId]/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation'; // Import useParams
+import { useState, useEffect } from 'react'; // Import from 'react'
+import { useRouter, useParams } from 'next/navigation'; 
 import { isAuthenticated, getAccessToken, clearAuthData } from '@/lib/auth';
 import { ChevronLeftIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
-import type { Category, Post, ApprovedVendor } from '@/lib/types'; // Import types
+import type { Category, Post, ApprovedVendor } from '@/lib/types'; //
 
 // Define the type for the data structure the API will expect for post updates
 // It's a partial Post, as not all fields are editable
@@ -66,7 +66,7 @@ export default function EditPostPage() {
     }
   }, [post]);
 
-  // Effect to filter subcategories based on selectedCategory (similar to new-post)
+  // Effect to filter subcategories
   useEffect(() => {
     if (selectedCategory) {
       const children = categories.filter(cat => cat.parent_id === selectedCategory);
@@ -104,7 +104,7 @@ export default function EditPostPage() {
         throw new Error(errorData.detail || 'Failed to fetch post data.');
       }
       const postData: Post = await postResponse.json();
-      setPost(postData); // Store the fetched post data
+      setPost(postData);
 
       // 2. Fetch All Categories (needed to map IDs to names and build subcategory logic)
       const categoriesResponse = await fetch('/api/vendor/categories', {
@@ -117,7 +117,7 @@ export default function EditPostPage() {
         throw new Error(errorData.detail || 'Failed to fetch categories');
       }
       const categoriesData: Category[] = await categoriesResponse.json();
-      setCategories(categoriesData); // Store all categories
+      setCategories(categoriesData);
 
       // 3. Fetch Vendor Profile (needed for config_id for photo uploads)
       const vendorProfileResponse = await fetch('/api/vendor/me', {
@@ -137,7 +137,7 @@ export default function EditPostPage() {
       console.error('Error fetching edit data:', err);
       setPageError(err.message || 'Failed to load post for editing.');
       if (err.message.includes('token missing') || err.message.includes('Invalid or expired')) {
-        clearAuthData();
+        clearAuthData(); //
         router.push('/login');
       }
     } finally {
@@ -161,7 +161,7 @@ export default function EditPostPage() {
     
     // Optimistically update UI
     setExistingPhotoUrls(prevUrls => prevUrls.filter(url => url !== urlToRemove));
-    setFormSuccess('Photo marked for removal. Click "Save Changes" to apply.');
+    setFormSuccess('Photo marked for removal. Save changes to apply.');
     // The actual deletion from storage and DB will happen on form submission (PATCH call)
     // For simplicity, we're not implementing individual photo DELETE API endpoint now.
     // The PATCH update will replace photo_urls with the 'existingPhotoUrls' state.
@@ -197,9 +197,8 @@ export default function EditPostPage() {
       title,
       description: description,
       price,
-      // Category/subcategory can generally not be changed directly on edit for simplicity
-      // in most systems, as it might change required fields/structure.
-      // If allowed, you'd include: category_id: selectedCategory, subcategory_id: selectedSubcategory || null,
+      // Category/subcategory are typically read-only after creation
+      // If allowed to change, you'd include: category_id: selectedCategory, subcategory_id: selectedSubcategory || null,
       
       // Update has_photo and photo_urls based on current state (existing + new)
       has_photo: (existingPhotoUrls.length > 0 || photos.length > 0), 
@@ -224,28 +223,26 @@ export default function EditPostPage() {
         throw new Error(errorData.detail || 'Failed to update post.');
       }
 
-      // const responseData = await response.json(); // Not strictly needed, but could return updated post
       setFormSuccess('Post updated successfully!');
 
-      // Handle NEW photo uploads only (existing photos handled by PATCH)
+      // Handle new photo uploads only (existing photos handled by PATCH)
       if (photos.length > 0) {
         setFormLoading(true); // Keep loading while new photos upload
         setFormSuccess('Post updated. Uploading new photos...');
         for (const photo of photos) {
           const formData = new FormData();
-          // Use original post's edit_token for upload (from 'post' state)
           formData.append('token', post.edit_token); 
           formData.append('postId', postId);
           formData.append('config_id', vendorProfile.config_id);
           formData.append('image', photo);
 
-          // Direct call to Edge Function for image upload (using service key on server via headers)
-          const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/upload-post-image`, {
+          // Call your proxy API route for image upload
+          const uploadResponse = await fetch('/api/vendor/upload-image', { 
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}` 
+              'Authorization': `Bearer ${accessToken}`, // Pass user's access token to your proxy API
             },
-            body: formData,
+            body: formData, 
           });
 
           if (!uploadResponse.ok) {
@@ -267,7 +264,7 @@ export default function EditPostPage() {
       console.error('Post update failed:', err);
       setFormError(err.message || 'An unexpected error occurred during post update.');
       if (err.message.includes('token missing') || err.message.includes('Invalid or expired')) {
-        clearAuthData();
+        clearAuthData(); //
         router.push('/login');
       }
     } finally {
@@ -276,8 +273,8 @@ export default function EditPostPage() {
   };
 
 
-  if (!isAuthenticated()) {
-    return null; // Component will not render if not authenticated, redirect handled by useEffect
+  if (!isAuthenticated()) { //
+    return null; 
   }
 
   // Initial loading state for fetching post, categories, and vendor profile
@@ -473,7 +470,7 @@ export default function EditPostPage() {
                   <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
                   {photos.length > 0 && (
                     <div className="mt-2 text-sm text-gray-600">
-                      New: {photos.map((file, idx) => (
+                      Selected: {photos.map((file, idx) => (
                         <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2 mb-1">
                           {file.name}
                           <button type="button" onClick={() => removeNewPhoto(idx)} className="ml-1 -mr-0.5 h-4 w-4 rounded-full inline-flex items-center justify-center text-blue-400 hover:bg-blue-200 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">

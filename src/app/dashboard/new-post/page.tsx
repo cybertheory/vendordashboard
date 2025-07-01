@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, getAccessToken, getVendorId, clearAuthData } from '@/lib/auth'; // Added clearAuthData
-import { ChevronLeftIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline'; // Added icons
-import type { Category, Post, ApprovedVendor } from '@/lib/types'; // Import all necessary types
+import { isAuthenticated, getAccessToken, getVendorId, clearAuthData } from '@/lib/auth';
+import { ChevronLeftIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import type { Category, Post, ApprovedVendor } from '@/lib/types'; //
 
 // Define the type for the data structure the API will expect for post creation.
 type NewPostFormInput = Omit<Post, 
@@ -96,7 +96,7 @@ export default function NewPostPage() {
       console.error('Error fetching categories:', err);
       setError(err.message || 'Failed to load categories.');
       if (err.message.includes('token missing') || err.message.includes('Invalid or expired')) {
-        clearAuthData(); // Clear token if authentication fails
+        clearAuthData(); //
         router.push('/login');
       }
     }
@@ -216,13 +216,13 @@ export default function NewPostPage() {
           formData.append('image', photo);
 
           // Direct call to Edge Function for image upload (using service key on server via headers)
-          const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/upload-post-image`, { //
+          const uploadResponse = await fetch('/api/vendor/upload-image', { // <-- CALL YOUR PROXY API ROUTE
             method: 'POST',
             // IMPORTANT: No 'Content-Type' header here for FormData. The browser sets it correctly.
             headers: {
-              'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}` // Use service key for Edge Function
+              'Authorization': `Bearer ${accessToken}`, // Pass user's access token to your proxy API
             },
-            body: formData,
+            body: formData, // Send the FormData
           });
 
           if (!uploadResponse.ok) {
@@ -251,7 +251,7 @@ export default function NewPostPage() {
       console.error('Post creation failed:', err);
       setFormError(err.message || 'An unexpected error occurred during post creation.');
       if (err.message.includes('token missing') || err.message.includes('Invalid or expired')) {
-        clearAuthData();
+        clearAuthData(); //
         router.push('/login');
       }
     } finally {
@@ -286,7 +286,6 @@ export default function NewPostPage() {
   }
   
   // Filter for main categories (those without a parent_id).
-  // This will include "For Sale" since its parent_id is null.
   const mainCategories = categories.filter(cat => !cat.parent_id);
 
 
